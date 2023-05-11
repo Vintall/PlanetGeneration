@@ -87,8 +87,8 @@ public class SphereBuilder : MonoBehaviour
 
                 newPoint += x * size.x / (pointsPerAxis - 1) * xVector;
                 newPoint += y * size.y / (pointsPerAxis - 1) * yVector;
-
-                points.Add(Vector3.Lerp(newPoint, newPoint.normalized * radius, interpolationValue));
+                Vector3 spherePoint = newPoint.normalized * radius;
+                points.Add(Vector3.Lerp(newPoint, spherePoint + spherePoint * 0.3f * Noise.GeneratePoint(0, 2, spherePoint + Vector3.one * 5000), interpolationValue));
 
                 normals.Add(newPoint.normalized);
 
