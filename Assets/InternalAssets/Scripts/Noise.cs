@@ -4,7 +4,7 @@ using UnityEngine;
 
 public static class Noise
 {
-    public static float GeneratePoint(uint seed, int span, Vector3 point)
+    public static float GeneratePoint(uint seed, float span, Vector3 point)
     {
         Vector3 realPoint = point;
 
@@ -62,6 +62,10 @@ public static class Noise
         float yRelation = (point.y - edgePoints[0].y) / span;
         float zRelation = (point.z - edgePoints[0].z) / span;
 
+        xRelation *= xRelation;
+        yRelation *= yRelation;
+        zRelation *= zRelation;
+
         float firstPlateInterpolation = Interpolate(
             Interpolate(dotProduct[0], dotProduct[1], xRelation),
             Interpolate(dotProduct[2], dotProduct[4], xRelation),
@@ -76,12 +80,13 @@ public static class Noise
 
         return fullInterpolation / 2 + 0.5f;
     }
-    static float DotGradient(ref Vector3 noiseVector, ref Vector3 gridPoint, ref Vector3 point, int span)
+    static float DotGradient(ref Vector3 noiseVector, ref Vector3 gridPoint, ref Vector3 point, float span)
     {
         Vector3 delta = point - gridPoint;
         return Vector3.Dot(noiseVector, delta / span);
     }
-    static float Interpolate(float a, float b, float w) => a + (b - a) * w;
+    //static float Interpolate(float a, float b, float w) => a + (b - a) * w;
+    static float Interpolate(float a, float b, float w) => (b - a) * (Mathf.Sin(Mathf.PI * (w - 0.5f)) / 2 + 0.5f) + a;
     static int InitHash(int seed)
     {
         Random.InitState(seed);

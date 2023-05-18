@@ -16,10 +16,6 @@ public class HashVisualization : MonoBehaviour
     GameObject primitive;
 
     [SerializeField]
-    Terrain terrain;
-    TerrainData terrainData;
-
-    [SerializeField]
     Material material;
 
     [SerializeField, Range(1, 512)]
@@ -60,9 +56,6 @@ public class HashVisualization : MonoBehaviour
     {
         RemoveChilds();
         Vector3 position;
-        terrainData = new TerrainData();
-        terrain.terrainData = terrainData;
-        terrain.materialTemplate = material;
         
 
         float[,] heights = new float[resolution, resolution];
@@ -86,7 +79,6 @@ public class HashVisualization : MonoBehaviour
                 if (noiseResult < min)
                     min = noiseResult;
 
-                heights[x, z] = noiseResult * amplitudeMultiplier;
                 cube.position = position;
                 cube.localScale = Vector3.one * fullScale;
                 cube.SetParent(transform);
@@ -94,13 +86,7 @@ public class HashVisualization : MonoBehaviour
         Debug.Log($"Max: {max}");
         Debug.Log($"Min: {min}");
 
-        terrainData.heightmapResolution = resolution;
-        terrainData.alphamapResolution = resolution;
-        
-        terrainData.SetHeights(0, 0, heights);
-        
     }
-
     private void OnEnable()
     {
         HashJob job = new HashJob
@@ -108,14 +94,5 @@ public class HashVisualization : MonoBehaviour
 
         };
         //job.ScheduleParallel(hashes.Length, resolution, default).Complete();
-
-    }
-    void OnDisable()
-    {
-
-    }
-    void Update()
-    {
-
     }
 }
