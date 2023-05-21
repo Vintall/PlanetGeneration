@@ -23,24 +23,16 @@ public class SphereBuilder : MonoBehaviour
     [SerializeField, Header("Create when entered play mode")] 
     bool createOnStart;
 
-    [SerializeField, Header("First triange out of quad")] 
-    bool fillFirstTriangle;
-
-    [SerializeField, Header("Second triange out of quad")] 
-    bool fillSecondTriangle;
-
-    [SerializeField, Tooltip("Obsolete")] 
-    bool fillBackwardTriangle;
-
-    [SerializeField, Range(0f, 1f), Header("0/1 - cube/sphere")] 
-    float interpolationValue;
-
     [SerializeField, Min(1)]
     float noiseSpan = 1;
 
     [SerializeField, Range(1, 7)]
     int noiseOctaves = 1;
 
+    [SerializeField]
+    Transform quadTreeControllPoint;
+
+    List<SphereChunk> sphereChunks = new List<SphereChunk>(6);
 
     [BurstCompile(CompileSynchronously = true, FloatMode = FloatMode.Fast, FloatPrecision = FloatPrecision.Low, OptimizeFor = OptimizeFor.Performance)]
     struct TestJob : IJobFor
@@ -75,65 +67,65 @@ public class SphereBuilder : MonoBehaviour
         if (createOnStart)
             CreateSphere();
     }
-    struct PlaneParams
+    private void Update()
     {
-        public Vector3 xVector;
-        public Vector3 yVector;
-        public Vector3 planeCenter;
-        public Vector2 planeSize;
+        QuadTreeLodUpdate();
+    }
+    void QuadTreeLodUpdate()
+    {
+        if (quadTreeControllPoint == null)
+            return;
 
-        public PlaneParams(Vector3 xVector, Vector3 yVector, Vector3 planeCenter, Vector2 planeSize)
-        {
-            this.xVector = xVector;
-            this.yVector = yVector;
-            this.planeCenter = planeCenter;
-            this.planeSize = planeSize;
-        }
+        if (sphereChunks.Count == 0)
+            return;
+
+        foreach (SphereChunk sphereChunk in sphereChunks)
+            sphereChunk.QuadTreeLodUpdate(quadTreeControllPoint);
     }
     public void CreateSphere()
     {
         RemoveChilds();
 
         GameObject newSphere = new GameObject();
+        newSphere.name = "Procedural Planet";
+
         Transform newSphereTransform = newSphere.transform;
         newSphereTransform.parent = transform;
 
-        Transform planeHolder;
 
-        Vector2 planeSize = Vector2.one * radius * 2;
+        Vector2 сhunkSize = Vector2.one * radius * 2;
 
-        PlaneParams[] planeParams = new PlaneParams[6]
+        SphereChunk.ChunkParams[] chunkParams = new SphereChunk.ChunkParams[6]
         {
-            new PlaneParams(Vector3.forward, Vector3.up, Vector3.right * radius, planeSize), // Side planes
-            new PlaneParams(Vector3.left, Vector3.up, Vector3.forward * radius, planeSize),
-            new PlaneParams(Vector3.back, Vector3.up, Vector3.left * radius, planeSize),
-            new PlaneParams(Vector3.right, Vector3.up, Vector3.back * radius, planeSize),
-            new PlaneParams(Vector3.right, Vector3.forward, Vector3.up * radius, planeSize), // Top Plate
-            new PlaneParams(Vector3.left, Vector3.forward, Vector3.down * radius, planeSize) // Bottom Plate
+            new SphereChunk.ChunkParams(Vector3.forward, Vector3.up, Vector3.right * radius, сhunkSize, radius), // Side Chunks
+            new SphereChunk.ChunkParams(Vector3.left, Vector3.up, Vector3.forward * radius, сhunkSize, radius),
+            new SphereChunk.ChunkParams(Vector3.back, Vector3.up, Vector3.left * radius, сhunkSize, radius),
+            new SphereChunk.ChunkParams(Vector3.right, Vector3.up, Vector3.back * radius, сhunkSize, radius),
+            new SphereChunk.ChunkParams(Vector3.right, Vector3.forward, Vector3.up * radius, сhunkSize, radius), // Top Plate
+            new SphereChunk.ChunkParams(Vector3.left, Vector3.forward, Vector3.down * radius, сhunkSize, radius) // Bottom Plate
         };
 
-        foreach (PlaneParams planeParam in planeParams)
+        SphereChunk сhunkHolder;
+        foreach (SphereChunk.ChunkParams chunkParam in chunkParams)
         {
-            planeHolder = InstantiatePlane(planeParam.xVector, planeParam.yVector, planeParam.planeCenter, planeParam.planeSize);
-            planeHolder.parent = newSphereTransform;
+            сhunkHolder = InstantiateChunk(chunkParam);
+            сhunkHolder.transform.parent = newSphereTransform;
+            сhunkHolder.gameObject.SetActive(true);
+            sphereChunks.Add(сhunkHolder);
         }
     }
-    Transform InstantiatePlane(Vector3 xVector, Vector3 yVector, Vector3 center, Vector2 size)
+    void RemoveChilds()
     {
-        //SphereChunk sphereChunk = SphereChunkObjectPool.PopChunk();
-        //sphereChunk.InstantiateChunk(xVector, yVector, center, size);
+        for (int i = 0; i < sphereChunks.Count; ++i)
+            SphereChunkObjectPool.PushChunk(sphereChunks[i]);
 
-        Mesh newMesh = MeshBuilder.BuildPlaneMesh(xVector, yVector, center, size);
-        newMesh.RecalculateNormals();
-        newMesh.RecalculateTangents();
-
-        GameObject plane = new GameObject();
-        MeshFilter meshFilter = plane.AddComponent<MeshFilter>();
-        MeshRenderer meshRenderer = plane.AddComponent<MeshRenderer>();
-
-        meshFilter.mesh = newMesh;
-        meshRenderer.material = meshMaterial;
-        return plane.transform;
+        sphereChunks.Clear();
+    }
+    SphereChunk InstantiateChunk(SphereChunk.ChunkParams chunkParams)
+    {
+        SphereChunk sphereChunk = SphereChunkObjectPool.PopChunk();
+        sphereChunk.InstantiateChunk(chunkParams);
+        return sphereChunk;
     }
 
     struct MeshPointsBuilderJob : IJobFor
@@ -148,9 +140,5 @@ public class SphereBuilder : MonoBehaviour
             
         }
     }
-    void RemoveChilds()
-    {
-        for (int i = 0; i < transform.childCount; ++i)
-            Destroy(transform.GetChild(i).gameObject);
-    }
+    
 }
