@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using Unity.Entities;
 using Unity.Entities.UniversalDelegates;
+using Unity.VisualScripting;
 using UnityEngine;
 using static SphereChunk;
 
@@ -64,9 +66,7 @@ public static class MeshBuilder
 
     //    return newMesh;
     //}
-    const int pointsPerAxis = 32;
-    const int noiseOctaves = 4;
-    const int noiseSpan = 35;
+
 
     //BuildPlaneMesh(Unoptimised algorithm) With Vertex Dublication
     //public static Mesh BuildPlaneMesh(SphereChunk.ChunkParams chunkParams) // With dublicating points
@@ -149,14 +149,23 @@ public static class MeshBuilder
     //}
 
 
-
-    public static Mesh BuildPlaneMesh(SphereChunk.ChunkParams chunkParams) // With dublicating points // Optimized
+    public struct MeshParams
+    {
+        public int pointsPerAxis;
+        public int noiseOctaves;
+        public int noiseSpan;
+    }
+    public static Mesh BuildPlaneMesh(SphereChunk.ChunkParams chunkParams, MeshParams meshParams, uint seed) // With dublicating points // Optimized
     {
         Vector3 xVector = chunkParams.xVector.normalized;
         Vector3 yVector = chunkParams.yVector.normalized;
         Vector3 center = chunkParams.chunkCenter;
         Vector2 size = chunkParams.chunkSize;
         float radius = chunkParams.radius;
+
+        int pointsPerAxis = meshParams.pointsPerAxis;
+        int noiseOctaves = meshParams.noiseOctaves;
+        int noiseSpan = meshParams.noiseSpan;
 
         Mesh newMesh = new Mesh();
 
@@ -193,16 +202,30 @@ public static class MeshBuilder
 
 
         float finalKoef = 0.3f * 0.5f;
+
+        float[] noiseValues = new float[points.Length];
+
+        //for (int i = 0; i < noiseValues.Length; ++i)
+        //    noiseValues[i] = 1f;
+
+        float noiseSheetAmplitudeDivider = 1;
+        float noiseSheetAmplitudeStabilizer = 0;
+
         for (int oct = 0; oct < noiseOctaves; ++oct)
         {
-            noiseResults[oct] = Noise.GeneratePoints(0, noiseSpan / (oct + 1), points);
-
+            noiseResults[oct] = Noise.GeneratePoints(seed, noiseSpan / (oct + 1), points);
+            
             for (int i = 0; i < points.Length; ++i)
             {
                 float modifiedNoiseValue = finalKoef / (oct + 1) * noiseResults[oct][i];
                 points[i] += points[i] * modifiedNoiseValue;
             }
+            noiseSheetAmplitudeStabilizer += noiseSheetAmplitudeDivider;
+            noiseSheetAmplitudeDivider *= 2;
         }
+        for (int i = 0; i < points.Length; ++i)
+            points[i] += points[i] * noiseValues[i] / noiseSheetAmplitudeStabilizer * noiseOctaves;
+
         // Next step is just compose squares from those points
 
         Vector3[,] points2D = new Vector3[pointsPerAxis, pointsPerAxis];
@@ -215,7 +238,6 @@ public static class MeshBuilder
 
         int finalPointsIter = 0;
         int trianglesIter = 0;
-        int max = 0;
         for (int i = 1; i < pointsPerAxis; ++i)
             for (int j = 1; j < pointsPerAxis; ++j)
             {
@@ -243,17 +265,13 @@ public static class MeshBuilder
                 triangles[trianglesIter++] = finalPointsIter - 1;
                 triangles[trianglesIter++] = finalPointsIter - 3;
             }
-        Debug.Log(max);
         newMesh.vertices = finalPoints;
-        newMesh.triangles = triangles; //= new int[triangles.Length];
-        //for (int i = 0; i < triangles.Length; ++i)
-        //    newMesh.triangles[i] = ;
-
+        newMesh.triangles = triangles; 
         newMesh.normals = normals;
 
         //newMesh.RecalculateNormals();
         //newMesh.RecalculateTangents();
-
+        
         return newMesh;
     }
 

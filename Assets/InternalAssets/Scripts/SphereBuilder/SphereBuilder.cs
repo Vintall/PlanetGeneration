@@ -11,7 +11,7 @@ using Unity.Rendering;
 
 public class SphereBuilder : MonoBehaviour
 {
-    [SerializeField, Range(1, 50)] 
+    [SerializeField, Range(1, 5000)] 
     float radius = 1;
 
     [SerializeField, Range(5, 320)] 
@@ -24,26 +24,32 @@ public class SphereBuilder : MonoBehaviour
     bool createOnStart;
 
     [SerializeField, Min(1)]
-    float noiseSpan = 1;
+    int noiseSpan = 1;
 
-    [SerializeField, Range(1, 7)]
+    [SerializeField, Range(1, 20)]
     int noiseOctaves = 1;
+
+    [SerializeField]
+    float noiseAmplitude = 1;
 
     [SerializeField]
     Transform quadTreeControllPoint;
 
+    [SerializeField]
+    uint seed = 1;
+
     List<SphereChunk> sphereChunks = new List<SphereChunk>(6);
 
-    [BurstCompile(CompileSynchronously = true, FloatMode = FloatMode.Fast, FloatPrecision = FloatPrecision.Low, OptimizeFor = OptimizeFor.Performance)]
-    struct TestJob : IJobFor
-    {
-        [WriteOnly]
-        public NativeArray<int> array;
-        public void Execute(int index)
-        {
-            array[index] = index;
-        }
-    }
+    //[BurstCompile(CompileSynchronously = true, FloatMode = FloatMode.Fast, FloatPrecision = FloatPrecision.Low, OptimizeFor = OptimizeFor.Performance)]
+    //struct TestJob : IJobFor
+    //{
+    //    [WriteOnly]
+    //    public NativeArray<int> array;
+    //    public void Execute(int index)
+    //    {
+    //        array[index] = index;
+    //    }
+    //}
     void Start()
     {
         {
@@ -66,7 +72,7 @@ public class SphereBuilder : MonoBehaviour
 
         if (createOnStart)
             CreateSphere();
-    }
+    } 
     private void Update()
     {
         QuadTreeLodUpdate();
@@ -81,7 +87,7 @@ public class SphereBuilder : MonoBehaviour
 
         foreach (SphereChunk sphereChunk in sphereChunks)
             sphereChunk.QuadTreeLodUpdate(quadTreeControllPoint);
-    }
+    } 
     public void CreateSphere()
     {
         RemoveChilds();
@@ -124,21 +130,29 @@ public class SphereBuilder : MonoBehaviour
     SphereChunk InstantiateChunk(SphereChunk.ChunkParams chunkParams)
     {
         SphereChunk sphereChunk = SphereChunkObjectPool.PopChunk();
-        sphereChunk.InstantiateChunk(chunkParams);
+
+        MeshBuilder.MeshParams meshParams = new MeshBuilder.MeshParams()
+        {
+            noiseOctaves = noiseOctaves,
+            noiseSpan = noiseSpan,
+            pointsPerAxis = pointsPerAxis
+        };
+
+        sphereChunk.InstantiateChunk(chunkParams, meshParams, seed);
         return sphereChunk;
     }
 
-    struct MeshPointsBuilderJob : IJobFor
-    {
-        [ReadOnly]
-        public NativeArray<int> vertexes;
-        [WriteOnly]
-        public NativeArray<int> normals;
-        public NativeArray<int> triangles;
-        public void Execute(int index)
-        {
+    //struct MeshPointsBuilderJob : IJobFor
+    //{
+    //    [ReadOnly]
+    //    public NativeArray<int> vertexes;
+    //    [WriteOnly]
+    //    public NativeArray<int> normals;
+    //    public NativeArray<int> triangles;
+    //    public void Execute(int index)
+    //    {
             
-        }
-    }
+    //    }
+    //}
     
 }

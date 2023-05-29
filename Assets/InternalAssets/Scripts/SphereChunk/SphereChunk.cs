@@ -25,8 +25,9 @@ public class SphereChunk : MonoBehaviour
 
     List<SphereChunk> subChunks = new(4);
 
-    const int maxSplittings = 7;
+    const int maxSplittings = 6;
     int currentSplitting;
+    uint seed = 0;
 
     public void DestroyChunk()
     {
@@ -40,10 +41,13 @@ public class SphereChunk : MonoBehaviour
         }
         SphereChunkObjectPool.PushChunk(this);
     }
-    public void InstantiateChunk(ChunkParams chunkParams)
+    MeshBuilder.MeshParams meshParamsCopy;
+    public void InstantiateChunk(ChunkParams chunkParams, MeshBuilder.MeshParams meshParams, uint seed)
     {
+        this.seed = seed;
+        meshParamsCopy = meshParams;
         this.chunkParams = chunkParams;
-        Mesh newMesh = MeshBuilder.BuildPlaneMesh(chunkParams);
+        Mesh newMesh = MeshBuilder.BuildPlaneMesh(chunkParams, meshParams, seed);
         //MeshBuilder.BuildPlaneMesh(meshFilter.mesh, chunkParams);
         meshRenderer.material.SetFloat("_Radius", chunkParams.radius);
 
@@ -71,9 +75,9 @@ public class SphereChunk : MonoBehaviour
         {
             SphereChunk buffer = SphereChunkObjectPool.PopChunk();
             
-            buffer.InstantiateChunk(subChunksParams[i]);
+            buffer.InstantiateChunk(subChunksParams[i], meshParamsCopy, seed);
             buffer.transform.SetParent(transform);
-            buffer.gameObject.SetActive(true);
+            buffer.gameObject.SetActive(true); 
             subChunks.Add(buffer);
         }
     }
