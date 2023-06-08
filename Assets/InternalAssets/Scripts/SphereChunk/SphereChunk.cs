@@ -13,6 +13,7 @@ public class SphereChunk : MonoBehaviour
     private void Awake()
     {
         meshRenderer = GetComponent<MeshRenderer>();
+        //meshRenderer.enabled = false;
     }
 
     public enum SphereChunkMode
@@ -29,6 +30,12 @@ public class SphereChunk : MonoBehaviour
     int currentSplitting;
     uint seed = 0;
 
+    
+    private void Update()
+    {
+        //Graphics.DrawMesh(meshFilter.mesh, transform.position, Quaternion.identity, meshRenderer.material, 0);
+    }
+
     public void DestroyChunk()
     {
         if (sphereChunkMode == SphereChunkMode.SubChunks)
@@ -36,7 +43,7 @@ public class SphereChunk : MonoBehaviour
             foreach (SphereChunk sphereChunk in subChunks)
                 sphereChunk.DestroyChunk();
 
-            //subChunks.Clear();
+            subChunks.Clear();
             sphereChunkMode = SphereChunkMode.SingleChunk;
         }
         SphereChunkObjectPool.PushChunk(this);
@@ -48,10 +55,9 @@ public class SphereChunk : MonoBehaviour
         meshParamsCopy = meshParams;
         this.chunkParams = chunkParams;
         Mesh newMesh = MeshBuilder.BuildPlaneMesh(chunkParams, meshParams, seed);
-        //MeshBuilder.BuildPlaneMesh(meshFilter.mesh, chunkParams);
+        
         meshRenderer.material.SetFloat("_Radius", chunkParams.radius);
 
-        //Mesh newMesh = MeshBuilder.BuildPlaneMesh(chunkParams.xVector, chunkParams.yVector, chunkParams.chunkCenter, chunkParams.chunkSize, chunkParams.radius);
         newMesh.RecalculateNormals();
         newMesh.RecalculateTangents();
         meshFilter.mesh = newMesh;

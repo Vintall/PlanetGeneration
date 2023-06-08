@@ -13,12 +13,18 @@ public class SphereBuilder : MonoBehaviour
 {
     [SerializeField, Range(1, 5000)] 
     float radius = 1;
-
+     
     [SerializeField, Range(5, 320)] 
     int pointsPerAxis;
 
     [SerializeField] 
     Material meshMaterial;
+
+    [SerializeField]
+    Material waterMaterial;
+
+    [SerializeField]
+    Mesh sphereMesh;
 
     [SerializeField, Header("Create when entered play mode")] 
     bool createOnStart;
@@ -37,6 +43,7 @@ public class SphereBuilder : MonoBehaviour
 
     [SerializeField]
     uint seed = 1;
+
 
     List<SphereChunk> sphereChunks = new List<SphereChunk>(6);
 
@@ -91,9 +98,19 @@ public class SphereBuilder : MonoBehaviour
     public void CreateSphere()
     {
         RemoveChilds();
-
+         
         GameObject newSphere = new GameObject();
         newSphere.name = "Procedural Planet";
+
+        GameObject oceanSphere = new GameObject();
+        oceanSphere.name = "OceanSphere";
+
+        oceanSphere.AddComponent<MeshFilter>().mesh = sphereMesh;
+        oceanSphere.AddComponent<MeshRenderer>().material = waterMaterial;
+
+        oceanSphere.transform.localScale = 2 * radius * Vector3.one;
+
+        oceanSphere.transform.SetParent(newSphere.transform);
 
         Transform newSphereTransform = newSphere.transform;
         newSphereTransform.parent = transform;
@@ -123,7 +140,7 @@ public class SphereBuilder : MonoBehaviour
     void RemoveChilds()
     {
         for (int i = 0; i < sphereChunks.Count; ++i)
-            SphereChunkObjectPool.PushChunk(sphereChunks[i]);
+            sphereChunks[i].DestroyChunk();
 
         sphereChunks.Clear();
     }
